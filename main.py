@@ -152,7 +152,7 @@ class Robot:
 
 
 FOV = math.pi / 3
-NUM_RAYS = 10
+NUM_RAYS = 50
 RANGE = 400*cm
 SCALE = W / NUM_RAYS
 SCREEN_DIST = W/2 / math.tan(FOV/2)
@@ -166,7 +166,7 @@ class Raycast:
         dir = vec2(0,-1).rotate(self.robot.angle)
         pos = self.robot.rect.center + dir * robot_size.y // 2
         #pg.draw.circle(self.sim.display, "white", pos, 6)
-        rays = []
+        
         for i in range(NUM_RAYS):
             angle = FOV * (i/(NUM_RAYS-1)-.5)
             ray_dir = dir.rotate(deg(angle))
@@ -174,31 +174,17 @@ class Raycast:
                 point = pos + ray_dir * x
                 for r in self.sim.rects:
                     if r.collidepoint(point):
-                        rays.append(x)
+                        xcos = x * math.cos(angle)
+                        h = SCREEN_DIST / (xcos+.0001) * WALL_HEIGHT
+                        color = [255/(1 + (xcos/RANGE)**.5)]*3
+                        pg.draw.rect(self.sim.display, color, (
+                            i*SCALE, H/2-h/2,
+                            SCALE, h
+                        ))
                         break
                 else: continue
                 break
-            else:
-                rays.append(-1)
             pg.draw.line(self.sim.display, "red", pos, pos + ray_dir * x, 2)
-
-        
-        # Draw
-        for i in range(NUM_RAYS):
-            x = rays[i]
-            if x == -1: continue
-            last = -1 if i==0 else rays[i-1]
-            next = -1 if i==NUM_RAYS-1 else rays[i+1]
-            a,b = (last,x)[last==-1],(next,x)[next==-1]
-            for y in range(math.ceil(SCALE)):
-                new_x = a+(x-a)*(y/SCALE)**.5
-                xcos = new_x * math.cos(angle)
-                h = SCREEN_DIST / (xcos+.0001) * WALL_HEIGHT
-                color = [255/(1 + (xcos/RANGE)**.5)]*2+[(y > SCALE/2)*255]
-                pg.draw.rect(self.sim.display, color, (
-                    i*SCALE+y, H/2-h/2,
-                    1, h
-                ))
 
     def update(self):
         pass
