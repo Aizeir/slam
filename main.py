@@ -1,4 +1,5 @@
 import math
+import random
 import time
 import pygame as pg
 from pygame.math import Vector2 as vec2
@@ -30,10 +31,10 @@ class Sim:
 
     def draw(self):
         self.display.fill("black")
-        """for r in self.rects:
+        for r in self.rects:
             pg.draw.rect(self.display, 'gray',r)
-        self.robot.draw()"""
-        self.raycast.draw()
+        self.robot.draw()
+        #self.raycast.draw()
 
 
 
@@ -44,7 +45,7 @@ robot_turn_speed = 50 # en deg/s
 robot_wheel_rad = 4*cm
 robot_diag = robot_size.magnitude() / 2
 
-bit_num = 2*1
+bit_num = 16*1
 bit_size = 360 / bit_num
 angle_quad = 360 / bit_num * 1.5
 bit_step = (2*math.pi*robot_wheel_rad) / bit_num
@@ -80,6 +81,10 @@ class Robot:
         self.predicted_pos = self.rect.center
         self.predicted_angle = 0
 
+        # deadreckon
+        self.dead_pos = self.rect.center
+        self.dead_angle = 0
+
         # dessin
         self.chassis = pg.Surface(robot_size).convert_alpha() # pr les rotation
         self.chassis.fill('red')
@@ -111,8 +116,11 @@ class Robot:
             distance_px = self.moving*self.speed.magnitude() + (1,-1,-1,1)[i]*rad(angle)*robot_diag
             self.wheel_angles[i] += deg(distance_px / robot_wheel_rad)
 
-        # Measure
+        # Odometry
         self.odometry()
+        # Deadreckon
+        self.dead_pos += self.speed * (1 + random.random() / 10)
+        self.dead_angle += angle * (1 + random.random() / 10)
 
     def odometry(self):
         # Lecture des bits
@@ -145,10 +153,15 @@ class Robot:
         chassis = pg.transform.rotate(self.chassis,-self.angle)
         self.sim.display.blit(chassis, chassis.get_rect(center=self.rect.center))
         
-        # chassis prédit
-        chassis = pg.transform.rotate(self.chassis,-self.predicted_angle)
+        # odométrie
+        """chassis = pg.transform.rotate(self.chassis,-self.predicted_angle)
         chassis.set_alpha(100)
-        self.sim.display.blit(chassis, chassis.get_rect(center=self.predicted_pos))
+        self.sim.display.blit(chassis, chassis.get_rect(center=self.predicted_pos))"""
+
+        # deadreckon
+        chassis = pg.transform.rotate(self.chassis,-self.dead_angle)
+        chassis.set_alpha(100)
+        self.sim.display.blit(chassis, chassis.get_rect(center=self.dead_pos))
 
 
 FOV = math.pi / 3
@@ -187,6 +200,11 @@ class Raycast:
             pg.draw.line(self.sim.display, "red", pos, pos + ray_dir * x, 2)
 
     def update(self):
+        pass
+
+
+class ParticleFilter:
+    def __init__(self):
         pass
 
 debug_font = pg.font.Font(None,35)
